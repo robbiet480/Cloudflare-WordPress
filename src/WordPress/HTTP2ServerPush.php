@@ -40,6 +40,11 @@ class HTTP2ServerPush
                     sanitize_html_class(self::http2LinkResourceHintAs(current_filter()))
                 );
 
+                $maxHeaderSize = 3072;
+                if(defined('CLOUDFLARE_HTTP2_SERVER_PUSH_HEADER_SIZE')) {
+                  $maxHeaderSize = absint(CLOUDFLARE_HTTP2_SERVER_PUSH_HEADER_SIZE);
+                };
+
                 // If the current header size is larger than 3KB (3072 bytes)
                 // ignore following resources which can be pushed
                 // This is a workaround for Cloudflare's 8KB header limit
@@ -48,8 +53,10 @@ class HTTP2ServerPush
 
                 // +2 comes from the last CRLF since it's two bytes
                 $headerSize = strlen($headerAsString) + strlen($newHeader) + 2;
-                if ($headerSize > 3072) {
-                    error_log('Cannot Server Push (header size over 3072 Bytes).');
+                if ($headerSize > $maxHeaderSize) {
+                    if(defined('CLOUDFLARE_HTTP2_SERVER_PUSH_LOG')) {
+                      error_log('Cannot Server Push (header size over 3072 Bytes).');
+                    }
                     return $src;
                 }
 
